@@ -43,28 +43,31 @@ class DatabaseHelper:
             )
         ''')
         
-        # 3. Bảng Attendance (Quản lý trạng thái điểm danh)
+        # 3. Bảng Attendance (Nâng cấp bổ sung cột hành vi và phát biểu ban đầu lúc điểm danh)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS Attendance (
                 attendance_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id INTEGER NOT NULL,
                 student_id TEXT NOT NULL,
                 check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                attendance_status TEXT NOT NULL, -- 'Có mặt' hoặc 'Đi trễ'
+                attendance_status TEXT NOT NULL,          -- 'Có mặt' hoặc 'Đi trễ'
+                initial_behavior TEXT NOT NULL,           -- 'Focusing' hoặc 'Distracted' lúc điểm danh
+                initial_is_raising_hand INTEGER DEFAULT 0, -- 1: Có giơ tay, 0: Không giơ tay lúc điểm danh
                 FOREIGN KEY (session_id) REFERENCES LectureSession(session_id),
                 FOREIGN KEY (student_id) REFERENCES Student(student_id),
                 UNIQUE(session_id, student_id) 
             )
         ''')
 
-        # 4. Bảng LearningStatus (Quản lý log hành vi học tập realtime)
+        # 4. Bảng LearningStatus (Nâng cấp bổ sung cột theo dõi trạng thái giơ tay chu kỳ)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS LearningStatus (
                 status_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id INTEGER NOT NULL,
                 student_id TEXT NOT NULL,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                learning_behavior TEXT NOT NULL, -- 'Focusing', 'Distracted', 'Sleeping'
+                learning_behavior TEXT NOT NULL,     -- 'Focusing', 'Distracted'
+                is_raising_hand INTEGER DEFAULT 0,   -- 1: Có giơ tay, 0: Không giơ tay tại chu kỳ quét
                 FOREIGN KEY (session_id) REFERENCES LectureSession(session_id),
                 FOREIGN KEY (student_id) REFERENCES Student(student_id)
             )
@@ -158,15 +161,15 @@ class DatabaseHelper:
         conn.close()
         return rows
 
-    def insert_attendance(self, session_id, student_id, attendance_status):
-        """Ghi nhận log giao dịch điểm danh của sinh viên"""
+    def insert_attendance(self, session_id, student_id, attendance_status, initial_behavior, initial_is_raising_hand):
+        """Ghi nhận log giao dịch điểm danh kèm hành vi trạng thái ban đầu của sinh viên"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT OR IGNORE INTO Attendance (session_id, student_id, attendance_status)
-                VALUES (?, ?, ?)
-            ''', (session_id, student_id, attendance_status))
+                INSERT OR IGNORE INTO Attendance (session_id, student_id, attendance_status, initial_behavior, initial_is_raising_hand)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (session_id, student_id, attendance_status, initial_behavior, initial_is_raising_hand))
             conn.commit()
             return cursor.rowcount > 0
         except Exception as e:
@@ -175,15 +178,15 @@ class DatabaseHelper:
         finally:
             conn.close()
 
-    def insert_learning_status(self, session_id, student_id, learning_behavior):
-        """Ghi nhận trạng thái hành vi phân tích từ camera theo định kỳ thời gian"""
+    def insert_learning_status(self, session_id, student_id, learning_behavior, is_raising_hand):
+        """Ghi nhận đồng thời trạng thái hành vi học tập và biến phát biểu số nguyên (1/0) vào DB theo chu kỳ"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO LearningStatus (session_id, student_id, learning_behavior)
-                VALUES (?, ?, ?)
-            ''', (session_id, student_id, learning_behavior))
+                INSERT INTO LearningStatus (session_id, student_id, learning_behavior, is_raising_hand)
+                VALUES (?, ?, ?, ?)
+            ''', (session_id, student_id, learning_behavior, is_raising_hand))
             conn.commit()
             return True
         except Exception as e:
