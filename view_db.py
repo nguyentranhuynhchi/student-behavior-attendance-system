@@ -23,12 +23,16 @@ def check_database():
         
         # 1. BẢNG PHIÊN HỌC (LectureSession)
         print("=" * 40 + " 1. BẢNG BUỔI HỌC (LectureSession) " + "=" * 40)
-        cursor.execute("SELECT * FROM LectureSession")
+        cursor.execute('''
+            SELECT ls.*, c.class_name
+            FROM LectureSession ls
+            LEFT JOIN Classroom c ON ls.classroom_id = c.classroom_id
+        ''')
         session_rows = cursor.fetchall()
         if session_rows:
-            headers = ["ID Buổi học", "Mã môn học", "Tên môn học", "Ngày học", "Bắt đầu", "Kết thúc", "Trạng thái"]
+            headers = ["ID Buổi học", "Mã môn học", "Tên môn học", "Lớp", "Ngày học", "Bắt đầu", "Kết thúc", "Trạng thái"]
             data = [[
-                r["session_id"], r["course_code"], r["course_name"], 
+                r["session_id"], r["course_code"], r["course_name"], r["class_name"],
                 r["lecture_date"], r["start_time"], r["end_time"], r["status"]
             ] for r in session_rows]
             print(tabulate(data, headers=headers, tablefmt="grid"))
@@ -38,7 +42,12 @@ def check_database():
 
         # 2. BẢNG SINH VIÊN (Student)
         print("=" * 40 + " 2. BẢNG SINH VIÊN (Student) " + "=" * 40)
-        cursor.execute("SELECT * FROM Student")
+        cursor.execute('''
+            SELECT s.student_id, s.full_name, c.class_name, s.email, s.phone, s.face_embedding
+            FROM Student s
+            LEFT JOIN Classroom c ON s.classroom_id = c.classroom_id
+            ORDER BY s.student_id ASC
+        ''')
         student_rows = cursor.fetchall()
         if student_rows:
             headers = ["MSSV", "Họ và tên", "Lớp", "Email", "Số ĐT", "Face Vector"]

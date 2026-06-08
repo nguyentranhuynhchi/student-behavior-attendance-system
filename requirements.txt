@@ -4,3 +4,4 @@ deepface
 tensorflow==2.20.0
 tf-keras==2.20.0
 protobuf>=5.26.1,<6.0.0dev
+bcrypt

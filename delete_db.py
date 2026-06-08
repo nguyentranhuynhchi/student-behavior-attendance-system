@@ -23,9 +23,10 @@ def clear_all_database_data():
         # 2. Xóa các bảng chứa danh mục gốc sau
         cursor.execute("DELETE FROM LectureSession;")
         cursor.execute("DELETE FROM Student;")
+        cursor.execute("DELETE FROM Classroom;")
         
         # 3. Reset bộ đếm ID tự tăng (AUTOINCREMENT) trong hệ thống SQLite về lại từ 0
-        cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('LearningStatus', 'Attendance', 'LectureSession');")
+        cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('LearningStatus', 'Attendance', 'LectureSession', 'Classroom');")
         
         conn.commit()
         print("[+] ĐÃ XÓA SẠCH TOÀN BỘ DỮ LIỆU TRONG DATABASE THÀNH CÔNG!")

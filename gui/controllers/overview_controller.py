@@ -56,16 +56,11 @@ class OverviewController:
 
     def load_all_students(self):
         """Tải toàn bộ danh sách sinh viên từ database"""
-        conn = self.db.get_connection()
-        cursor = conn.cursor()
         try:
-            cursor.execute("SELECT student_id, full_name, class_name FROM Student ORDER BY student_id ASC")
-            return cursor.fetchall()
+            return self.db.get_all_students_with_classroom()
         except Exception as e:
             print(f"Lỗi load_all_students: {e}")
             return []
-        finally:
-            conn.close()
 
     def load_all_sessions(self):
         """Tải danh sách các buổi học đã diễn ra"""

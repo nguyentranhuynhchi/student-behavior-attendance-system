@@ -6,7 +6,7 @@ from gui.theme import THEME_COLORS, FONT_FAMILY
 from gui.constants import TEXT_ICONS, IMAGE_ASSETS 
 
 class Sidebar(ctk.CTkFrame):
-    def __init__(self, parent, on_menu_select):
+    def __init__(self, parent, on_menu_select, on_logout=None):
         super().__init__(
             parent, 
             fg_color=THEME_COLORS["bg_sidebar"], 
@@ -15,6 +15,7 @@ class Sidebar(ctk.CTkFrame):
             corner_radius=0
         )
         self.on_menu_select = on_menu_select
+        self.on_logout = on_logout
         self.buttons = {}
         self.current_active = None
         self.init_ui()
@@ -65,32 +66,68 @@ class Sidebar(ctk.CTkFrame):
             self.buttons[screen_id] = btn
 
         # Khu vực Hồ sơ người dùng ở cuối Sidebar
-        footer_frame = ctk.CTkFrame(self, fg_color=THEME_COLORS["bg_card"], corner_radius=12)
-        footer_frame.pack(side="bottom", fill="x", pady=25, padx=15)
+        self.footer_frame = ctk.CTkFrame(self, fg_color=THEME_COLORS["bg_card"], corner_radius=12)
+        self.footer_frame.pack(side="bottom", fill="x", pady=25, padx=15)
+
+        profile_row = ctk.CTkFrame(self.footer_frame, fg_color="transparent")
+        profile_row.pack(fill="x")
         
-        user_avatar = ctk.CTkLabel(
-            footer_frame, text="AI", font=(FONT_FAMILY, 14, "bold"), 
+        self.user_avatar = ctk.CTkLabel(
+            profile_row, text="--", font=(FONT_FAMILY, 14, "bold"),
             text_color="#FFFFFF", fg_color=THEME_COLORS["primary"], 
             width=38, height=38, corner_radius=19
         )
-        user_avatar.pack(side="left", padx=12, pady=12)
+        self.user_avatar.pack(side="left", padx=12, pady=12)
         
-        info_text = ctk.CTkLabel(
-            footer_frame, text="Quản Trị Viên\nadmin@hcmute.edu.vn", 
+        self.info_text = ctk.CTkLabel(
+            profile_row, text="Chưa đăng nhập\nVui lòng đăng nhập",
             font=(FONT_FAMILY, 11), text_color=THEME_COLORS["text_muted"], justify="left"
         )
-        info_text.pack(side="left", pady=12)
+        self.info_text.pack(side="left", pady=12)
+
+        self.logout_button = ctk.CTkButton(
+            self.footer_frame,
+            text="Đăng Xuất",
+            font=(FONT_FAMILY, 12, "bold"),
+            fg_color=THEME_COLORS["danger"],
+            hover_color="#B91C1C",
+            height=34,
+            command=self.handle_logout_click,
+        )
 
     def handle_click(self, screen_id):
         """Xử lý sự kiện khi click vào một mục menu"""
         if self.current_active == screen_id:
             return
-            
+
+        self.set_active(screen_id)
+        self.on_menu_select(screen_id)
+
+    def set_active(self, screen_id):
         self.current_active = screen_id
         for sid, btn in self.buttons.items():
             if sid == screen_id:
                 btn.configure(fg_color=THEME_COLORS["bg_card_hover"], text_color=THEME_COLORS["text_main"])
             else:
                 btn.configure(fg_color="transparent", text_color=THEME_COLORS["text_muted"])
-                
-        self.on_menu_select(screen_id)
+
+    def update_user_info(self, user):
+        """Cập nhật thông tin tài khoản hiển thị ở cuối sidebar"""
+        if not user:
+            self.user_avatar.configure(text="--")
+            self.info_text.configure(text="Chưa đăng nhập\nVui lòng đăng nhập")
+            self.logout_button.pack_forget()
+            return
+
+        display_name = user.get("display_name") or user.get("username") or "User"
+        role = user.get("role") or ""
+        email = user.get("email") or "Chưa có email"
+        parts = [part for part in display_name.split() if part]
+        initials = f"{parts[0][0]}{parts[-1][0]}".upper() if len(parts) >= 2 else display_name[:2].upper()
+        self.user_avatar.configure(text=initials)
+        self.info_text.configure(text=f"{display_name} ({role})\n{email}")
+        self.logout_button.pack(fill="x", padx=12, pady=(0, 12))
+
+    def handle_logout_click(self):
+        if self.on_logout:
+            self.on_logout()
