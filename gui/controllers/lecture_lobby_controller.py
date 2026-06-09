@@ -10,26 +10,7 @@ class LectureLobbyController:
     def load_scheduled_lectures(self):
         """Load danh sách bài giảng CHƯA GIẢNG từ DB, chuẩn hóa thành dict và sắp xếp theo thời gian"""
         try:
-            conn = self.db.get_connection()
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT session_id, course_code, course_name, lecture_date, start_time, end_time 
-                FROM LectureSession
-                WHERE status = 'scheduled'
-            ''')
-            rows = cursor.fetchall()
-            conn.close()
-
-            scheduled_lectures = []
-            for row in rows:
-                scheduled_lectures.append({
-                    "id": row["session_id"],
-                    "code": row["course_code"],
-                    "name": row["course_name"],
-                    "date": row["lecture_date"], # Định dạng: YYYY-MM-DD
-                    "start": row["start_time"],  # Định dạng: HH:MM
-                    "end": row["end_time"]
-                })
+            scheduled_lectures = self.db.get_scheduled_lectures()
 
             # Sắp xếp danh sách ưu tiên bài giảng nào sắp bắt đầu sớm nhất lên đầu
             def get_sort_key(x):

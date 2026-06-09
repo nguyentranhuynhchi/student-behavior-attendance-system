@@ -60,6 +60,15 @@ class StudentRepository(BaseRepository):
         finally:
             conn.close()
 
+    def count_students(self):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT COUNT(*) FROM Student")
+            return cursor.fetchone()[0] or 0
+        finally:
+            conn.close()
+
     def get_all_students_with_classroom(self):
         conn = self.get_connection()
         cursor = conn.cursor()

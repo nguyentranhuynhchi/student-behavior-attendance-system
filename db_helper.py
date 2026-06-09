@@ -28,8 +28,23 @@ class DatabaseHelper:
     def init_db(self):
         init_all_tables()
 
-    def create_new_lecture_session(self, course_name, lecture_date, start_time, end_time):
-        return self.lecture_sessions.create_new_lecture_session(course_name, lecture_date, start_time, end_time)
+    def create_new_lecture_session(
+        self,
+        course_name,
+        lecture_date,
+        start_time,
+        end_time,
+        classroom_id=None,
+        created_by=None,
+    ):
+        return self.lecture_sessions.create_new_lecture_session(
+            course_name,
+            lecture_date,
+            start_time,
+            end_time,
+            classroom_id=classroom_id,
+            created_by=created_by,
+        )
 
     def update_lecture_session_status(self, session_id, new_status):
         return self.lecture_sessions.update_lecture_session_status(session_id, new_status)
@@ -65,8 +80,29 @@ class DatabaseHelper:
     def get_session_by_status(self, status):
         return self.lecture_sessions.get_session_by_status(status)
 
-    def get_lectures_by_date(self, lecture_date):
-        return self.lecture_sessions.get_lectures_by_date(lecture_date)
+    def get_lectures_by_date(self, lecture_date, classroom_id=None):
+        return self.lecture_sessions.get_lectures_by_date(lecture_date, classroom_id=classroom_id)
+
+    def get_scheduled_lectures(self):
+        return self.lecture_sessions.get_scheduled_lectures()
+
+    def get_all_sessions(self):
+        return self.lecture_sessions.get_all_sessions()
+
+    def get_latest_session_id(self):
+        return self.lecture_sessions.get_latest_session_id()
 
     def get_all_students_with_classroom(self):
         return self.students.get_all_students_with_classroom()
+
+    def count_students(self):
+        return self.students.count_students()
+
+    def count_present_by_session(self, session_id):
+        return self.attendance.count_present_by_session(session_id)
+
+    def count_alert_students_by_session(self, session_id):
+        return self.learning_status.count_alert_students_by_session(session_id)
+
+    def get_session_attendance_details(self, session_id):
+        return self.attendance.get_session_attendance_details(session_id)

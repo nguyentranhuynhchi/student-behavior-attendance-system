@@ -23,3 +23,23 @@ class LearningStatusRepository(BaseRepository):
             return False
         finally:
             conn.close()
+
+    def count_alert_students_by_session(self, session_id):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT COUNT(DISTINCT student_id)
+                FROM LearningStatus
+                WHERE session_id = ?
+                  AND learning_behavior IN ('Sleeping', 'Distracted')
+                """,
+                (session_id,),
+            )
+            return cursor.fetchone()[0] or 0
+        except Exception as e:
+            print(f"[Error] Failed to count AI alert students: {e}")
+            return 0
+        finally:
+            conn.close()

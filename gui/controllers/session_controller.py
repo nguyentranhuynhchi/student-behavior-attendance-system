@@ -5,7 +5,15 @@ class SessionController:
     def __init__(self):
         self.db = DatabaseHelper()
 
-    def save_lecture_session(self, course_name, lecture_date, start_time, end_time):
+    def save_lecture_session(
+        self,
+        course_name,
+        lecture_date,
+        start_time,
+        end_time,
+        classroom_id=None,
+        created_by=None,
+    ):
         course_name = course_name.strip()
         lecture_date = lecture_date.strip()
         start_time = start_time.strip()
@@ -44,7 +52,7 @@ class SessionController:
 
             # 4. Kiểm tra chống chồng chéo lịch học & Khoảng cách an toàn tối thiểu 5 phút
             # Lấy các bài giảng hiện có cùng ngày trong DB (loại trừ các bài đã completed)
-            existing_lectures = self.db.get_lectures_by_date(db_ready_date)
+            existing_lectures = self.db.get_lectures_by_date(db_ready_date, classroom_id=classroom_id)
 
             for row in existing_lectures:
                 db_start_str = row["start_time"]
@@ -70,7 +78,9 @@ class SessionController:
                 course_name=course_name,
                 lecture_date=db_ready_date, 
                 start_time=start_time,
-                end_time=end_time
+                end_time=end_time,
+                classroom_id=classroom_id,
+                created_by=created_by,
             )
             
             return {
