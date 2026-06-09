@@ -50,60 +50,41 @@ class LectureScreen(ctk.CTkFrame):
         )
         self.status_label.pack(side="right", padx=20)
 
-        # 2. MAIN LAYOUT
+        # 2. MAIN LAYOUT (Tách cấu trúc: Camera trung tâm 70% bên trái, Danh sách SV 30% bên phải)
         main_grid = ctk.CTkFrame(self, fg_color="transparent")
         main_grid.pack(fill="both", expand=True, padx=35, pady=(0, 25))
         main_grid.grid_rowconfigure(0, weight=1)
-        main_grid.grid_columnconfigure(0, weight=60, uniform="main_layout")
-        main_grid.grid_columnconfigure(1, weight=40, uniform="main_layout")
+        main_grid.grid_columnconfigure(0, weight=70, uniform="main_layout")
+        main_grid.grid_columnconfigure(1, weight=30, uniform="main_layout")
 
-        # CỘT TRÁI: VÙNG TRÌNH CHIẾU BÀI GIẢNG
-        left_panel = ctk.CTkFrame(main_grid, fg_color=THEME_COLORS["bg_card"], corner_radius=12, border_width=1, border_color=THEME_COLORS["border"])
-        left_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        # CỘT TRÁI: CAMERA AI ĐƯA RA TRUNG TÂM
+        self.main_cam_panel = ctk.CTkFrame(main_grid, fg_color=THEME_COLORS["bg_card"], corner_radius=12, border_width=1, border_color=THEME_COLORS["border"])
+        self.main_cam_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
         
-        self.presentation_view = ctk.CTkLabel(
-            left_panel, 
-            text="[ Bảng Trình Chiếu Tài Liệu / Slide Bài Giảng ]\n\nNội dung hiển thị tự động khi giảng viên vào lớp.", 
-            font=(FONT_FAMILY, 14), 
-            text_color=THEME_COLORS["text_muted"]
-        )
-        self.presentation_view.pack(fill="both", expand=True, padx=15, pady=15)
-
-        # CỘT PHẢI: CAMERA AI & DANH SÁCH SINH VIÊN
-        right_panel = ctk.CTkFrame(main_grid, fg_color="transparent")
-        right_panel.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
-        right_panel.grid_columnconfigure(0, weight=1)
-        right_panel.grid_rowconfigure(0, weight=45)  
-        right_panel.grid_rowconfigure(1, weight=55)  
-
-        # Vùng hiển thị Camera
-        self.main_cam_panel = ctk.CTkFrame(right_panel, fg_color=THEME_COLORS["bg_card"], corner_radius=12, border_width=1, border_color=THEME_COLORS["border"])
-        self.main_cam_panel.grid(row=0, column=0, sticky="nsew", pady=(0, 15))
-        self.main_cam_panel.pack_propagate(False)
         self.lbl_cam_title = ctk.CTkLabel(
             self.main_cam_panel, 
-            text=f"{TEXT_ICONS.get('lecture_fallback', '📹')} CAMERA GIÁM SÁT REALTIME TRACKING", 
+            text=f"{TEXT_ICONS.get('lecture_fallback', '📹')} CAMERA GIÁM SÁT REALTIME TRACKING (HD STANDARD)", 
             font=(FONT_FAMILY, 12, "bold"), 
             text_color=THEME_COLORS["text_title"]
         )
-        self.lbl_cam_title.pack(anchor="w", padx=15, pady=(12, 5))
+        self.lbl_cam_title.pack(anchor="w", padx=20, pady=(15, 5))
 
         self.cam_view = ctk.CTkLabel(
             self.main_cam_panel, 
             text="[ Camera đang tắt - Chờ luồng đếm ngược chuẩn bị ]", 
-            font=(FONT_FAMILY, 13), 
+            font=(FONT_FAMILY, 14), 
             fg_color=THEME_COLORS["bg_dark"],
             corner_radius=8
         )
-        self.cam_view.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        self.cam_view.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
-        # Vùng danh sách sinh viên điểm danh
-        self.attendance_list_panel = ctk.CTkFrame(right_panel, fg_color=THEME_COLORS["bg_card"], corner_radius=12, border_width=1, border_color=THEME_COLORS["border"])
-        self.attendance_list_panel.grid(row=1, column=0, sticky="nsew")
+        # CỘT PHẢI: DANH SÁCH SINH VIÊN GHI DANH
+        self.attendance_list_panel = ctk.CTkFrame(main_grid, fg_color=THEME_COLORS["bg_card"], corner_radius=12, border_width=1, border_color=THEME_COLORS["border"])
+        self.attendance_list_panel.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
 
         ctk.CTkLabel(
             self.attendance_list_panel, 
-            text="DANH SÁCH SINH VIÊN TRONG LỚP HỌC", 
+            text="DANH SÁCH SINH VIÊN TRONG LỚP", 
             font=(FONT_FAMILY, 12, "bold"), 
             text_color=THEME_COLORS["text_title"]
         ).pack(anchor="w", padx=15, pady=(15, 5))
@@ -235,17 +216,24 @@ class LectureScreen(ctk.CTkFrame):
         self.polling_job = self.after(5000, self.start_listening_lobby_signal)
 
     def update_camera_feed(self, cv_frame):
-        """Nhận khung hình, resize với kích thước cố định và render lên UI"""
+        """Nhận khung hình, giữ nguyên tỷ lệ HD 16:9 chuẩn từ camera phần cứng"""
         def _render():
             try:
-                FIXED_W = 460
-                FIXED_H = 280
+                # Tính toán kích thước hiển thị dựa trên chiều rộng khung để ép cứng tỷ lệ 16:9
+                render_w = self.main_cam_panel.winfo_width() - 40
+                render_h = int(render_w * (9 / 16)) # Luôn giữ tỷ lệ 16:9 chuẩn HD
                 
-                cv_frame_resized = cv2.resize(cv_frame, (FIXED_W, FIXED_H))
+                # Giới hạn chiều cao nếu vượt quá khung chứa cho phép
+                max_h = self.main_cam_panel.winfo_height() - 70
+                if render_h > max_h:
+                    render_h = max_h
+                    render_w = int(render_h * (16 / 9))
+
+                cv_frame_resized = cv2.resize(cv_frame, (render_w, render_h))
                 cv_img = cv2.cvtColor(cv_frame_resized, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(cv_img)
                 
-                ctk_img = ctk.CTkImage(light_image=pil_img, size=(FIXED_W, FIXED_H))
+                ctk_img = ctk.CTkImage(light_image=pil_img, size=(render_w, render_h))
                 self.cam_view.configure(image=ctk_img, text="")
             except Exception as e:
                 print(f"[X] Render Cam Error: {e}")

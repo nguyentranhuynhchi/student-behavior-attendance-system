@@ -3,20 +3,29 @@ import cv2
 import json
 import time
 import numpy as np
+import threading
 from ultralytics import YOLO
-from deepface import DeepFace
 from db_helper import DatabaseHelper
+
+# Import các Class từ 2 file linh kiện độc lập một cách chuẩn chỉnh
+from core.pose_engine import PoseAnalyzer
+from core.face_engine import FaceRecognizer
 
 class VisionEngine:
     def __init__(self):
         # 1. Khởi tạo cơ sở dữ liệu và nạp mô hình AI
         self.db = DatabaseHelper()
-        self.model_yolo = YOLO("yolo11n-pose.pt")
+        self.model_yolo = YOLO("yolo26n-pose.pt")
+        self.model_yolo.to("cuda")
         self.is_running = False
         self.session_attendance = {}
         self.known_students = []
         self.track_mapping = {}
         self.db_ready_to_write = True
+        
+        # Khởi tạo instance của Class PoseAnalyzer để xài lâu dài
+        self.pose_analyzer = PoseAnalyzer()
+        
         self.load_known_embeddings()
 
     def load_known_embeddings(self):
@@ -35,70 +44,51 @@ class VisionEngine:
             except Exception as e:
                 print(f"[X] Lỗi đọc Vector SV {row['student_id']}: {e}")
 
-    def compute_cosine_distance(self, emb1, emb2):
-        # 3. Tính toán khoảng cách hình học Cosine giữa hai Vector khuôn mặt
-        dot_product = np.dot(emb1, emb2)
-        norm_emb1 = np.linalg.norm(emb1)
-        norm_emb2 = np.linalg.norm(emb2)
-        return 1.0 - (dot_product / (norm_emb1 * norm_emb2))
-
     def stop_stream(self):
-        # 4. Phát lệnh dừng luồng quét camera thời gian thực
+        # 3. Phát lệnh dừng luồng quét camera thời gian thực
         self.is_running = False
 
-    def analyze_pose_behavior(self, keypoints, box_coords=None):
-        # 5. Phân tích tọa độ khớp xương cơ thể để xác định trạng thái học tập và phát biểu
-        if keypoints is None or len(keypoints.xy) == 0:
-            return "Distracted", False
-
-        pts = keypoints.xy[0].cpu().numpy()
-        if len(pts) < 11:
-            return "Distracted", False
-
-        left_eye, right_eye = pts[1], pts[2]
-        left_shoulder, right_shoulder = pts[5], pts[6]
-        left_wrist, right_wrist = pts[9], pts[10]
-
-        is_raising_hand = False
-
-        # Nhánh quét hành vi Giơ tay (Cổ tay cao hơn mắt)
-        if left_eye[1] > 0 and left_wrist[1] > 0 and left_wrist[1] < left_eye[1]:
-            is_raising_hand = True
-        if right_eye[1] > 0 and right_wrist[1] > 0 and right_wrist[1] < right_eye[1]:
-            is_raising_hand = True
-
-        # Nhánh quét hành vi Đứng lên (Dựa vào tỉ lệ tọa độ vai so với chiều cao khung hình bao)
-        if box_coords is not None:
-            bx1, by1, bx2, by2 = box_coords
-            box_height = by2 - by1
-            if box_height > 0:
-                if left_shoulder[1] > 0 and (left_shoulder[1] - by1) / box_height < 0.28:
-                    is_raising_hand = True
-                elif right_shoulder[1] > 0 and (right_shoulder[1] - by1) / box_height < 0.28:
-                    is_raising_hand = True
-
-        behavior = "Focusing"
+    def background_face_and_db_worker(self, student_crop, session_id, current_phase_status, behavior, is_raising_hand, track_id, log_callback):
+        """Hàm này xử lý trọn gói nhận diện khuôn mặt và ghi nhận DB trên Luồng Phụ ngầm"""
+        # Khởi tạo Class FaceRecognizer và truyền data nền vào
+        recognizer = FaceRecognizer(self.known_students)
+        match_student = recognizer.recognize(student_crop)
         
-        # Nhánh quét độ tập trung dựa vào khoảng cách đứng giữa đầu và vai
-        if left_eye[1] > 0 and left_shoulder[1] > 0:
-            head_shoulder_dist = left_shoulder[1] - left_eye[1]
-            if head_shoulder_dist < 45:
-                behavior = "Distracted"
-        elif right_eye[1] > 0 and right_shoulder[1] > 0:
-            head_shoulder_dist = right_shoulder[1] - right_eye[1]
-            if head_shoulder_dist < 45:
-                behavior = "Distracted"
+        if match_student:
+            student_id = match_student["student_id"]
+            name = match_student["full_name"]
+            avatar = match_student["avatar_path"]
+            
+            # Cập nhật mapping để luồng chính nhận diện ngay ở các khung hình sau
+            if track_id != -1:
+                self.track_mapping[track_id] = student_id
+            
+            if student_id not in self.session_attendance:
+                init_hand_digit = 1 if is_raising_hand else 0
+                # Ghi DB điểm danh lần đầu
+                self.db.insert_attendance(session_id, student_id, current_phase_status, behavior, init_hand_digit)
+                
+                self.session_attendance[student_id] = {
+                    "full_name": name,
+                    "attendance_status": current_phase_status,
+                    "behavior": behavior,
+                    "raising_hand": is_raising_hand,
+                    "avatar_path": avatar
+                }
+                log_callback(f"[GHI NHẬN] SV {name} - {current_phase_status}")
+            
+            print(f"[Worker Thread] Đã nhận diện thành công và cập nhật bộ nhớ đệm cho SV: {name}")
+        else:
+            print("[Worker Thread] Khuôn mặt lạ (Unknown) hoặc không khớp hệ thống.")
 
-        return behavior, is_raising_hand
-    
     def start_stream(self, session_id, ui_update_callback, student_detected_callback, session_end_callback, log_callback):
-        # 6. Khởi chạy luồng xử lý video real-time và kiểm soát ghi nhận điểm danh
+        # 4. Khởi chạy luồng xử lý video real-time và kiểm soát ghi nhận điểm danh
         self.is_running = True
         self.session_attendance = {}
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
         log_callback("[HỆ THỐNG] Bắt đầu phiên điểm danh realtime...")
         start_time = time.time()
@@ -126,7 +116,9 @@ class VisionEngine:
                     if cls == 0 and conf > 0.45:
                         keypoints_data = result.keypoints[i]
                         box_coords = (x1, y1, x2, y2)
-                        behavior, is_raising_hand = self.analyze_pose_behavior(keypoints_data, box_coords)
+                        
+                        # Gọi hàm analyze_pose_behavior từ instance của Class PoseAnalyzer đã tạo ở __init__
+                        behavior, is_raising_hand = self.pose_analyzer.analyze_pose_behavior(keypoints_data, box_coords)
 
                         color = (0, 255, 255)
                         label_text = "Scanning..."
@@ -160,62 +152,39 @@ class VisionEngine:
                             if student_crop.size == 0:
                                 continue
 
-                            try:
-                                emb_objs = DeepFace.represent(
-                                    img_path=student_crop,
-                                    model_name="Facenet",
-                                    detector_backend="opencv",
-                                    enforce_detection=False
+                            # Đóng gói toàn bộ biến số cần thiết ném sang luồng phụ xử lý ngầm
+                            ai_worker_thread = threading.Thread(
+                                target=self.background_face_and_db_worker,
+                                args=(
+                                    student_crop.copy(), 
+                                    session_id, 
+                                    current_phase_status, 
+                                    behavior, 
+                                    is_raising_hand, 
+                                    track_id, 
+                                    log_callback
                                 )
-                                
-                                if emb_objs and len(emb_objs) > 0:
-                                    current_emb = np.array(emb_objs[0]["embedding"], dtype=np.float32)
-                                    min_dist = 1.0
-                                    match_student = None
-                                    
-                                    for student in self.known_students:
-                                        dist = self.compute_cosine_distance(current_emb, student["embedding"])
-                                        if dist < min_dist:
-                                            min_dist = dist
-                                            match_student = student
-                                    
-                                    if min_dist < 0.55 and match_student:
-                                        student_id = match_student["student_id"]
-                                        name = match_student["full_name"]
-                                        avatar = match_student["avatar_path"]
-                                        
-                                        if track_id != -1:
-                                            self.track_mapping[track_id] = student_id
-                                        
-                                        if student_id not in self.session_attendance:
-                                            init_hand_digit = 1 if is_raising_hand else 0
-                                            self.db.insert_attendance(session_id, student_id, current_phase_status, behavior, init_hand_digit)
-                                            
-                                            self.session_attendance[student_id] = {
-                                                "full_name": name,
-                                                "attendance_status": current_phase_status,
-                                                "behavior": behavior,
-                                                "raising_hand": is_raising_hand,
-                                                "avatar_path": avatar
-                                            }
-                                            log_callback(f"[GHI NHẬN] SV {name} - {current_phase_status}")
-                                        
-                                        student_detected_callback(student_id, name, current_phase_status, avatar)
-                                        color = (0, 255, 0) if current_phase_status == "Có mặt" else (0, 165, 255)
-                                        hand_status = " | REQ " if is_raising_hand else ""
-                                        label_text = f"{name} ({behavior}{hand_status})"
-                                    else:
-                                        color = (0, 0, 255)
-                                        label_text = "Unknown"
-                                self.last_deepface_time = time.time()
-                            except Exception as e:
-                                pass
+                            )
+                            ai_worker_thread.daemon = True
+                            ai_worker_thread.start()
+                            
+                            self.last_deepface_time = time.time()
+                            print("[Main Thread] Đã chuyển tiếp ảnh khuôn mặt sang luồng phụ xử lý!")
+                        else:
+                            color = (0, 0, 255)
+                            label_text = "Unknown"
 
-                        # 7. Kiểm soát khóa cổng chu kỳ 5 giây và đồng bộ ghi nhận đa biến số xuống DB
+                        # 5. Kiểm soát khóa cổng chu kỳ 5 giây và đồng bộ ghi nhận xuống DB
                         if int(elapsed_time) % 5 == 0:
-                            if self.db_ready_to_write and student_id:
+                            if self.db_ready_to_write and student_id is not None:
                                 hand_digit = 1 if is_raising_hand else 0
-                                self.db.insert_learning_status(session_id, student_id, behavior, hand_digit)
+                                
+                                db_thread = threading.Thread(
+                                    target=self.db.insert_learning_status,
+                                    args=(session_id, student_id, behavior, hand_digit)
+                                )
+                                db_thread.start()
+                                
                                 self.db_ready_to_write = False
                         else:
                             self.db_ready_to_write = True
