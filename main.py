@@ -79,6 +79,9 @@ class SmartClassroomApp(ctk.CTk):
             elif screen_id == "lecture":
                 if hasattr(self.screens["lecture"], "refresh_and_load_data"):
                     self.screens["lecture"].refresh_and_load_data()
+            elif screen_id == "session":
+                if hasattr(self.screens["session"], "refresh_and_load_data"):
+                    self.screens["session"].refresh_and_load_data()
                     
             target_screen = self.screens.get(screen_id)
             if target_screen:

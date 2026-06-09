@@ -9,6 +9,8 @@ class SessionScreen(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, fg_color="transparent")
         self.controller = SessionController()
+        self.classroom_lookup = {}
+        self.classroom_empty_text = "Chưa có lớp học trong DB"
         self.init_ui()
         
     def init_ui(self):
@@ -62,6 +64,28 @@ class SessionScreen(ctk.CTkFrame):
         self.ent_course_name = ctk.CTkEntry(form_scroll, placeholder_text="Ví dụ: Chuyên đề Trí Tuệ Nhân Tạo & Học Máy", fg_color=THEME_COLORS["bg_input"], border_color=THEME_COLORS["border"], height=42, font=(FONT_FAMILY, 13))
         self.ent_course_name.pack(fill="x", pady=(0, 12))
 
+        # Trường số 2: Chọn lớp học áp dụng cho phiên học
+        classroom_values = self.load_classroom_options()
+        self.selected_classroom = ctk.StringVar(value=classroom_values[0])
+
+        ctk.CTkLabel(form_scroll, text="Lớp Học / Phòng Học", font=(FONT_FAMILY, 12, "bold"), text_color=THEME_COLORS["text_muted"]).pack(anchor="w", pady=(5, 2))
+        self.opt_classroom = ctk.CTkOptionMenu(
+            form_scroll,
+            values=classroom_values,
+            variable=self.selected_classroom,
+            fg_color=THEME_COLORS["bg_input"],
+            button_color=THEME_COLORS["primary"],
+            button_hover_color=THEME_COLORS["primary_hover"],
+            text_color=THEME_COLORS["text_main"],
+            dropdown_fg_color=THEME_COLORS["bg_card"],
+            dropdown_text_color=THEME_COLORS["text_main"],
+            height=42,
+            font=(FONT_FAMILY, 13),
+        )
+        self.opt_classroom.pack(fill="x", pady=(0, 12))
+        if not self.classroom_lookup:
+            self.opt_classroom.configure(state="disabled")
+
         # Dòng thời gian tổ chức 1: Ngày và Giờ bắt đầu
         row_time_1 = ctk.CTkFrame(form_scroll, fg_color="transparent")
         row_time_1.pack(fill="x", pady=(0, 12))
@@ -79,8 +103,7 @@ class SessionScreen(ctk.CTkFrame):
         f_start = ctk.CTkFrame(row_time_1, fg_color="transparent")
         f_start.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
         ctk.CTkLabel(f_start, text="Thời Gian Bắt Đầu", font=(FONT_FAMILY, 12, "bold"), text_color=THEME_COLORS["text_muted"]).pack(anchor="w", pady=(0, 2))
-        self.ent_start_time = ctk.CTkEntry(f_start, placeholder_text="HH:MM (Ví dụ: 07:30)", fg_color=THEME_COLORS["bg_input"], border_color=THEME_COLORS["border"], height=42, font=(FONT_FAMILY, 13))
-        self.ent_start_time.pack(fill="x")
+        self.start_hour_var, self.start_minute_var = self.create_time_picker(f_start, "07", "00")
 
         # Dòng thời gian tổ chức 2: Giờ kết thúc và Nút upload tài liệu đính kèm
         row_time_2 = ctk.CTkFrame(form_scroll, fg_color="transparent")
@@ -91,8 +114,7 @@ class SessionScreen(ctk.CTkFrame):
         f_end = ctk.CTkFrame(row_time_2, fg_color="transparent")
         f_end.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         ctk.CTkLabel(f_end, text="Thời Gian Kết Thúc", font=(FONT_FAMILY, 12, "bold"), text_color=THEME_COLORS["text_muted"]).pack(anchor="w", pady=(0, 2))
-        self.ent_end_time = ctk.CTkEntry(f_end, placeholder_text="HH:MM (Ví dụ: 11:30)", fg_color=THEME_COLORS["bg_input"], border_color=THEME_COLORS["border"], height=42, font=(FONT_FAMILY, 13))
-        self.ent_end_time.pack(fill="x")
+        self.end_hour_var, self.end_minute_var = self.create_time_picker(f_end, "08", "00")
 
         # Trường số 5: Tải tài liệu đề cương / giáo trình bài giảng (UI giả lập giữ nguyên)
         f_docs = ctk.CTkFrame(row_time_2, fg_color="transparent")
@@ -187,6 +209,105 @@ class SessionScreen(ctk.CTkFrame):
         )
         self.btn_clear.pack(side="right")
 
+    def create_time_picker(self, parent, default_hour, default_minute):
+        hour_values = [f"{hour:02d}" for hour in range(24)]
+        minute_values = [f"{minute:02d}" for minute in range(60)]
+
+        hour_var = ctk.StringVar(value=default_hour)
+        minute_var = ctk.StringVar(value=default_minute)
+
+        picker_frame = ctk.CTkFrame(
+            parent,
+            fg_color=THEME_COLORS["bg_input"],
+            border_color=THEME_COLORS["border"],
+            border_width=1,
+            corner_radius=8,
+            height=42,
+        )
+        picker_frame.pack(fill="x")
+        picker_frame.pack_propagate(False)
+
+        option_style = {
+            "fg_color": THEME_COLORS["bg_input"],
+            "button_color": THEME_COLORS["primary"],
+            "button_hover_color": THEME_COLORS["primary_hover"],
+            "text_color": THEME_COLORS["text_main"],
+            "dropdown_fg_color": THEME_COLORS["bg_card"],
+            "dropdown_text_color": THEME_COLORS["text_main"],
+            "height": 32,
+            "width": 78,
+            "font": (FONT_FAMILY, 13, "bold"),
+        }
+
+        hour_menu = ctk.CTkOptionMenu(
+            picker_frame,
+            values=hour_values,
+            variable=hour_var,
+            dynamic_resizing=False,
+            **option_style,
+        )
+        hour_menu.pack(side="left", padx=(8, 4), pady=5)
+
+        ctk.CTkLabel(
+            picker_frame,
+            text=":",
+            font=(FONT_FAMILY, 16, "bold"),
+            text_color=THEME_COLORS["text_main"],
+            width=12,
+        ).pack(side="left")
+
+        minute_menu = ctk.CTkOptionMenu(
+            picker_frame,
+            values=minute_values,
+            variable=minute_var,
+            dynamic_resizing=False,
+            **option_style,
+        )
+        minute_menu.pack(side="left", padx=(4, 8), pady=5)
+
+        ctk.CTkLabel(
+            picker_frame,
+            text="24h",
+            font=(FONT_FAMILY, 11, "bold"),
+            text_color=THEME_COLORS["text_muted"],
+        ).pack(side="right", padx=(0, 12))
+
+        return hour_var, minute_var
+
+    @staticmethod
+    def format_time_value(hour_var, minute_var):
+        return f"{hour_var.get()}:{minute_var.get()}"
+
+    def load_classroom_options(self):
+        classrooms = self.controller.load_classrooms()
+        self.classroom_lookup = {}
+
+        values = []
+        for classroom in classrooms:
+            class_name = classroom.get("class_name") or "Lớp chưa đặt tên"
+            class_code = classroom.get("class_code") or classroom.get("classroom_id")
+            display_text = f"{class_name} ({class_code})"
+            self.classroom_lookup[display_text] = classroom["classroom_id"]
+            values.append(display_text)
+
+        return values or [self.classroom_empty_text]
+
+    def get_selected_classroom_id(self):
+        selected_text = self.selected_classroom.get()
+        return self.classroom_lookup.get(selected_text)
+
+    def refresh_and_load_data(self):
+        if not hasattr(self, "opt_classroom"):
+            return
+
+        current_selection = self.selected_classroom.get()
+        classroom_values = self.load_classroom_options()
+        next_selection = current_selection if current_selection in self.classroom_lookup else classroom_values[0]
+
+        self.opt_classroom.configure(values=classroom_values)
+        self.selected_classroom.set(next_selection)
+        self.opt_classroom.configure(state="normal" if self.classroom_lookup else "disabled")
+
     def handle_mock_upload(self):
         """Xử lý hành động giả lập khi người dùng nhấn nút chọn file tài liệu"""
         from tkinter import filedialog
@@ -210,15 +331,17 @@ class SessionScreen(ctk.CTkFrame):
         # Thu thập thông tin từ các Entry trên UI
         course_name = self.ent_course_name.get()
         lecture_date = self.ent_date.get()
-        start_time = self.ent_start_time.get()
-        end_time = self.ent_end_time.get()
+        start_time = self.format_time_value(self.start_hour_var, self.start_minute_var)
+        end_time = self.format_time_value(self.end_hour_var, self.end_minute_var)
+        classroom_id = self.get_selected_classroom_id()
 
         # Gọi sang lớp Controller xử lý logic lưu dữ liệu bài giảng
         result = self.controller.save_lecture_session(
             course_name=course_name,
             lecture_date=lecture_date,
             start_time=start_time,
-            end_time=end_time
+            end_time=end_time,
+            classroom_id=classroom_id
         )
 
         # Cập nhật kết quả phản hồi lên giao diện chính
@@ -235,11 +358,17 @@ class SessionScreen(ctk.CTkFrame):
         from gui.constants import TEXT_ICONS
         
         self.ent_course_name.delete(0, 'end')
-        self.ent_start_time.delete(0, 'end')
-        self.ent_end_time.delete(0, 'end')
+        self.start_hour_var.set("07")
+        self.start_minute_var.set("00")
+        self.end_hour_var.set("08")
+        self.end_minute_var.set("00")
         
         self.ent_date.delete(0, 'end')
         self.ent_date.insert(0, datetime.now().strftime("%d/%m/%Y"))
+
+        if self.classroom_lookup:
+            first_classroom = next(iter(self.classroom_lookup))
+            self.selected_classroom.set(first_classroom)
         
         self.txt_notes.delete("0.0", "end")
         self.txt_notes.insert("0.0", "Nhập các hướng dẫn đặc biệt hoặc lưu ý nội quy phòng học tại đây...")

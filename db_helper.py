@@ -83,6 +83,9 @@ class DatabaseHelper:
     def get_lectures_by_date(self, lecture_date, classroom_id=None):
         return self.lecture_sessions.get_lectures_by_date(lecture_date, classroom_id=classroom_id)
 
+    def get_all_classrooms(self):
+        return self.classrooms.get_all_classrooms()
+
     def get_scheduled_lectures(self):
         return self.lecture_sessions.get_scheduled_lectures()
 
