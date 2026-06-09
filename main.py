@@ -1,4 +1,5 @@
 # main.py
+import core
 import customtkinter as ctk
 from gui.theme import THEME_COLORS
 from gui.components.sidebar import Sidebar
@@ -23,7 +24,7 @@ class SmartClassroomApp(ctk.CTk):
         try:
             self.state("zoomed")
         except:
-            self.attributes("-zoomed", True)
+            self.attributes("-zoomed", True)    
             
         self.grid_columnconfigure(0, weight=0, minsize=260) 
         self.grid_columnconfigure(1, weight=1)              

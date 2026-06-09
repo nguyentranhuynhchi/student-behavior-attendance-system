@@ -46,26 +46,6 @@ class EnrollmentScreen(ctk.CTkFrame):
         self.upload_text_sub = ctk.CTkLabel(self.upload_box, text="hoặc nhấp để duyệt tìm", font=(FONT_FAMILY, 12), text_color=THEME_COLORS["text_muted"])
         self.upload_text_sub.place(relx=0.5, rely=0.75, anchor="center")
 
-        # 2. Vùng xem trước Camera
-        self.cam_box = ctk.CTkFrame(left_panel, fg_color=THEME_COLORS["bg_input"], corner_radius=12, border_width=1, border_color=THEME_COLORS["border"], height=240)
-        self.cam_box.pack(fill="x", padx=25, pady=(0, 20))
-        self.cam_box.pack_propagate(False)
-        
-        cam_title_frame = ctk.CTkFrame(self.cam_box, fg_color="transparent")
-        cam_title_frame.pack(fill="x", padx=15, pady=12)
-        
-        self.cam_title_icon = ctk.CTkLabel(cam_title_frame, text="📷", font=(FONT_FAMILY, 14), text_color=THEME_COLORS["text_title"])
-        self.cam_title_icon.pack(side="left", padx=(0, 5))
-        
-        self.cam_title_label = ctk.CTkLabel(cam_title_frame, text="Xem Trước Camera", font=(FONT_FAMILY, 13, "bold"), text_color=THEME_COLORS["text_muted"])
-        self.cam_title_label.pack(side="left")
-        
-        self.cam_display_screen = ctk.CTkFrame(self.cam_box, fg_color=THEME_COLORS["black"], corner_radius=8)
-        self.cam_display_screen.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        
-        self.cam_placeholder_icon = ctk.CTkLabel(self.cam_display_screen, text="📷", font=(FONT_FAMILY, 36), text_color=THEME_COLORS["bg_card_hover"])
-        self.cam_placeholder_icon.place(relx=0.5, rely=0.5, anchor="center")
-
         # 3. Nút tải ảnh lên
         self.btn_load_image = ctk.CTkButton(
             left_panel, 
@@ -100,7 +80,16 @@ class EnrollmentScreen(ctk.CTkFrame):
         for key, label, placeholder in fields:
             ctk.CTkLabel(form_container, text=label, font=(FONT_FAMILY, 13, "bold"), text_color=THEME_COLORS["text_muted"]).pack(anchor="w", pady=(10, 5))
             
-            entry = ctk.CTkEntry(form_container, placeholder_text=placeholder, fg_color=THEME_COLORS["bg_input"], border_color=THEME_COLORS["border"], height=45, font=(FONT_FAMILY, 14))
+            entry = ctk.CTkEntry(
+                form_container, 
+                placeholder_text=placeholder, 
+                fg_color=THEME_COLORS["bg_input"], 
+                border_color=THEME_COLORS["border"], 
+                text_color=THEME_COLORS["text_main"], # Fix lỗi: Chữ nhập vào trắng sáng rõ ràng
+                placeholder_text_color=THEME_COLORS["text_muted"], # Fix lỗi: Chữ gợi ý mờ tinh tế
+                height=45, 
+                font=(FONT_FAMILY, 14)
+            )
             entry.pack(fill="x")
             self.entries[key] = entry
             
@@ -185,4 +174,4 @@ class EnrollmentScreen(ctk.CTkFrame):
         
         self.cloud_icon.configure(image=None, text=TEXT_ICONS["upload_cloud"])
         self.upload_text_main.configure(text="Kéo thả ảnh vào đây")
-        self.upload_text_sub.configure(text="hoặc nhấp để duyệt tìm")
+        self.upload_text_sub.configure(text="hoặc nhấp để duyệt tìm")   
