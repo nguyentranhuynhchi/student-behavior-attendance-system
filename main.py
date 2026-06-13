@@ -16,7 +16,7 @@ class SmartClassroomApp(ctk.CTk):
         
         self.title("Lớp học thông minh - Smart Classroom")
         self.geometry("1280x720")
-        self.minsize(1024, 768)
+        self.minsize(1280, 720)
         
         self.configure(fg_color=THEME_COLORS["bg_main"])
         ctk.set_appearance_mode("light")

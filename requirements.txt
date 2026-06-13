@@ -1,10 +1,22 @@
+# --- TĂNG TỐC ĐỒ HỌA NVIDIA CUDA 12.4 (MÁY CHẠY RTX 3050) ---
 --index-url https://download.pytorch.org/whl/cu124
 torch
 torchvision
 torchaudio
-customtkinter
-Pillow
-protobuf>=5.26.1,<6.0.0dev
+
+# --- GIAO DIỆN NGƯỜI DÙNG CHUẨN TKINTER ---
+customtkinter>=5.2.0
+Pillow>=10.0.0
+
+# --- LÕI AI CORE THỊ GIÁC & QUẢN LÝ MÔ HÌNH ---
+ultralytics>=8.1.0
+deepface>=0.0.92
 tensorflow>=2.18.0
 tf-keras
-deepface
+protobuf>=5.26.1,<6.0.0dev
+
+# --- ĐỒNG BỘ TOÁN MA TRẬN & RUNTIME (CHỐNG LỖI PYTHON 3.13) ---
+numpy>=1.24.0,<2.0.0
+opencv-python==4.13.0
+onnxruntime-gpu>=1.16.0
+typing-extensions>=4.8.0

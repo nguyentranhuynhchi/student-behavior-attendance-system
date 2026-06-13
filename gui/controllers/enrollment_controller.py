@@ -49,25 +49,40 @@ class EnrollmentController:
         embedding_json = None
         if DeepFace is not None:
             try:
-                # Trích xuất vector đặc trưng bằng model FaceNet (trả về xxx chiều)
+                # Trích xuất vector đặc trưng bằng model ArcFace (512 chiều)
                 embedding_objs = DeepFace.represent(
                     img_path=source_img_path,
-                    model_name="Facenet",
-                    detector_backend="opencv",   
-                    enforce_detection=False
+                    model_name="ArcFace",           # Đã đổi sang ArcFace đồng bộ hệ thống
+                    detector_backend="retinaface",  # Đổi sang retinaface để align chuẩn
+                    enforce_detection=True,         # BẮT BUỘC ĐỂ TRUE: Nếu không tìm thấy mặt sẽ ném ra lỗi lập tức
+                    align=True                      # Xoay thẳng khuôn mặt hình học
                 )
+                
                 if embedding_objs and len(embedding_objs) > 0:
                     embedding_vector = embedding_objs[0]["embedding"]
+                    
+                    # Kiểm tra nếu vector toàn số 0 (lỗi ma trận rỗng)
                     if all(v == 0 for v in embedding_vector):
-                        messagebox.showerror("Lỗi nhận diện", "Không tìm thấy khuôn mặt. Vui lòng chọn ảnh rõ mặt hơn!")
+                        messagebox.showerror("Ảnh không hợp lệ", "Không thể trích xuất đặc trưng! Vui lòng chọn ảnh khác rõ mặt và sắc nét hơn.")
                         return
+                        
                     embedding_json = json.dumps(embedding_vector)
                 else:
-                    messagebox.showerror("Lỗi nhận diện", "Không tìm thấy cấu trúc khuôn mặt hợp lệ trong bức ảnh này. Vui lòng chọn ảnh khác!")
+                    # Trường hợp danh sách trả về rỗng
+                    messagebox.showerror("Ảnh không hợp lệ", "Không tìm thấy cấu trúc khuôn mặt hợp lệ trong bức ảnh này. Vui lòng chọn hoặc chụp lại ảnh chân dung khác!")
                     return
+                    
             except Exception as e:
-                messagebox.showerror("Lỗi Trích Xuất AI", f"DeepFace không thể phân tích ảnh chân dung: {str(e)}\n(Đảm bảo ảnh rõ mặt và không bị che khuất)")
-                return
+                # KHI DEEPFACE KHÔNG TÌM THẤY MẶT (ENFORCE_DETECTION TRẢ VỀ LỖI), KHỐI LỆNH NÀY SẼ BẮT LẠI
+                messagebox.showerror(
+                    "Ảnh không hợp lệ", 
+                    "Hệ thống không nhận diện được khuôn mặt nào trong ảnh hồ sơ này!\n\n"
+                    "Yêu cầu:\n"
+                    "- Chọn ảnh chân dung rõ mặt, chính diện giống ảnh thẻ.\n"
+                    "- Đảm bảo khuôn mặt không bị che khuất hoặc quá mờ.\n\n"
+                    "Vui lòng bấm 'Tải Ảnh Lên' để chọn lại ảnh hợp lệ."
+                )
+                return # Chặn đứng tiến trình, không cho lưu thông tin xuống database
         else:
             print("[Warning] Thư viện 'deepface' chưa được cài đặt. Hệ thống sẽ tạm thời bỏ qua bước lưu embedding.")
 

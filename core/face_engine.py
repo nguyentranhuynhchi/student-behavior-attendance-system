@@ -20,9 +20,10 @@ class FaceRecognizer:
             with tf.device('/GPU:0'):
                 emb_objs = DeepFace.represent(
                     img_path=student_crop,
-                    model_name="Facenet",
-                    detector_backend="opencv",
-                    enforce_detection=False
+                    model_name="ArcFace",
+                    detector_backend="retinaface",
+                    enforce_detection=True,
+                    align=True,
                 )
             
             if emb_objs and len(emb_objs) > 0:
@@ -36,7 +37,7 @@ class FaceRecognizer:
                         min_dist = dist
                         match_student = student
                 
-                if min_dist < 0.55 and match_student:
+                if min_dist < 0.38 and match_student:
                     return match_student
             return None
         except Exception as e:
