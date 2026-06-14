@@ -52,7 +52,10 @@ class AdminSidebar(ctk.CTkFrame):
         ).pack(anchor="w", pady=(0, 10))
 
         menu_items = [
-            ("overview", "Tổng Quan", IMAGE_ASSETS["icon_dashboard"], TEXT_ICONS["dashboard_fallback"]),
+            ("admin_overview", "Tong Quan", IMAGE_ASSETS["icon_dashboard"], TEXT_ICONS["dashboard_fallback"]),
+            ("student_management", "Quản lý Sinh Viên", IMAGE_ASSETS["icon_enrollment"], TEXT_ICONS["enrollment_fallback"]),
+            ("classroom_management", "Quản lý Lớp Học", IMAGE_ASSETS["icon_session"], TEXT_ICONS["session_fallback"]),
+            ("session_history", "Lịch sử Buổi Học", IMAGE_ASSETS["icon_lecture"], TEXT_ICONS["lecture_fallback"]),
             ("teacher_management", "Quản lý Teacher", IMAGE_ASSETS["icon_account"], TEXT_ICONS["account_fallback"]),
             ("account", "Tài Khoản Admin", IMAGE_ASSETS["icon_account"], TEXT_ICONS["account_fallback"]),
         ]

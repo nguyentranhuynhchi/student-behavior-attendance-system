@@ -1,24 +1,24 @@
 # gui/constants.py
 
 TEXT_ICONS = {
-    "dashboard_fallback": "⊞",
-    "enrollment_fallback": "👤",
-    "session_fallback": "📋",
-    "lecture_lobby_fallback": "📋",
-    "lecture_fallback": "🎥",       
-    "account_fallback": "⚙",
-    "upload_cloud": "☁",
+    "dashboard_fallback": "[D]",
+    "enrollment_fallback": "[U]",
+    "session_fallback": "[S]",
+    "lecture_lobby_fallback": "[L]",
+    "lecture_fallback": "[V]",       
+    "account_fallback": "[A]",
+    "upload_cloud": "[C]",
     "camera_feed": "[ Camera Feed ]",
-    "record_dot": "●",
-    "ai_lightning": "⚡",
-    "chart_bar": "📊",
-    "alert_dot": "●",
-    "user_avatar": "👤",
-    "status_scanning": "●",
-    "status_ready": "✓",
-    "file_attachment": "📁",
-    "check_mark": "✓",
-    "hand_raising": "✋"
+    "record_dot": "*",
+    "ai_lightning": "[AI]",
+    "chart_bar": "[B]",
+    "alert_dot": "*",
+    "user_avatar": "[U]",
+    "status_scanning": "*",
+    "status_ready": "[OK]",
+    "file_attachment": "[F]",
+    "check_mark": "[OK]",
+    "hand_raising": "[H]"
 }
 
 IMAGE_ASSETS = {

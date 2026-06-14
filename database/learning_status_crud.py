@@ -43,3 +43,25 @@ class LearningStatusRepository(BaseRepository):
             return 0
         finally:
             conn.close()
+
+    def get_behavior_stats(self):
+        """Thống kê tổng hợp hành vi sinh viên: Focusing vs Distracted"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT learning_behavior, COUNT(*) as count
+                FROM LearningStatus
+                GROUP BY learning_behavior
+                """
+            )
+            result = {}
+            for row in cursor.fetchall():
+                result[row["learning_behavior"]] = row["count"]
+            return result
+        except Exception as e:
+            print(f"[Error] Failed to get behavior stats: {e}")
+            return {}
+        finally:
+            conn.close()

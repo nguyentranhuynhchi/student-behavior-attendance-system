@@ -10,12 +10,15 @@ from gui.screens.lecture_screen import LectureScreen
 from gui.screens.account_screen import AccountScreen
 from gui.screens.lecture_lobby_screen import LectureLobbyScreen
 from gui.screens.teacher_management_screen import TeacherManagementScreen
+from gui.screens.student_management_screen import StudentManagementScreen
+from gui.screens.classroom_management_screen import ClassroomManagementScreen
+from gui.screens.session_history_screen import SessionHistoryScreen
 
 class SmartClassroomApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.current_user = None
-        self.admin_screens = {"overview", "teacher_management", "account"}
+        self.admin_screens = {"admin_overview", "teacher_management", "student_management", "classroom_management", "session_history", "account"}
         self.teacher_screens = {"overview", "enrollment", "session", "lecture_lobby", "lecture", "account"}
         self.protected_screens = self.admin_screens | self.teacher_screens
         
@@ -54,13 +57,17 @@ class SmartClassroomApp(ctk.CTk):
         
         # 3. Khởi tạo và đăng ký các màn hình vào content_frame đúng chuẩn
         self.screens = {
-            "overview": OverviewScreen(self.content_frame),
+            "overview": OverviewScreen(self.content_frame, mode="teacher"),
+            "admin_overview": OverviewScreen(self.content_frame, mode="admin"),
             "enrollment": EnrollmentScreen(self.content_frame),
             "session": SessionScreen(self.content_frame),
             "account": AccountScreen(self.content_frame, on_auth_changed=self.handle_auth_changed),
             "lecture_lobby": LectureLobbyScreen(self.content_frame),
             "lecture": LectureScreen(self.content_frame),
             "teacher_management": TeacherManagementScreen(self.content_frame),
+            "student_management": StudentManagementScreen(self.content_frame),
+            "classroom_management": ClassroomManagementScreen(self.content_frame),
+            "session_history": SessionHistoryScreen(self.content_frame),
         }
         
         self.switch_screen("account")
@@ -94,7 +101,7 @@ class SmartClassroomApp(ctk.CTk):
             self._show_sidebar_for_user(user)
             if user:
                 if user.get("role") == "admin":
-                    self.switch_screen("teacher_management")
+                    self.switch_screen("admin_overview")
                 else:
                     self.switch_screen("overview")
             else:

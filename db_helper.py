@@ -127,3 +127,15 @@ class DatabaseHelper:
 
     def delete_student(self, student_id):
         return self.students.delete_student(student_id)
+
+    def get_all_classrooms_with_stats(self):
+        return self.classrooms.get_all_classrooms_with_stats()
+
+    def update_classroom(self, classroom_id, class_name, department=None, academic_year=None):
+        return self.classrooms.update_classroom(classroom_id, class_name, department, academic_year)
+
+    def delete_classroom(self, classroom_id):
+        return self.classrooms.delete_classroom(classroom_id)
+
+    def get_behavior_stats(self):
+        return self.learning_status.get_behavior_stats()

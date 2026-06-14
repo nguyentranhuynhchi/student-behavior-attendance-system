@@ -68,7 +68,7 @@ class LectureScreen(ctk.CTkFrame):
         
         self.lbl_cam_title = ctk.CTkLabel(
             self.main_cam_panel, 
-            text=f"{TEXT_ICONS.get('lecture_fallback', '📹')} CAMERA GIÁM SÁT REALTIME TRACKING (HD STANDARD)", 
+            text=f"{TEXT_ICONS.get('lecture_fallback', '')} CAMERA GIAM SAT REALTIME TRACKING (HD STANDARD)", 
             font=(FONT_FAMILY, 12, "bold"), 
             text_color=THEME_COLORS["text_title"]
         )
@@ -150,7 +150,7 @@ class LectureScreen(ctk.CTkFrame):
         bar_frame.pack_propagate(False)
 
         lbl_avatar = ctk.CTkLabel(
-            bar_frame, text=TEXT_ICONS.get("user_avatar", "👤"),
+            bar_frame, text=TEXT_ICONS.get("user_avatar", "[U]"),
             font=(FONT_FAMILY, 20), text_color=THEME_COLORS["text_title"], width=40
         )
         lbl_avatar.pack(side="left", padx=12, pady=5)
@@ -322,7 +322,7 @@ class LectureScreen(ctk.CTkFrame):
             if sid in self.class_student_ids:
                 current_text = bar_data["lbl_behavior"].cget("text")
                 if "Đang chờ" in current_text:
-                    bar_data["lbl_behavior"].configure(text="❌ Vắng mặt", text_color=THEME_COLORS["danger"])
+                    bar_data["lbl_behavior"].configure(text="Vắng mặt", text_color=THEME_COLORS["danger"])
                     bar_data["lbl_status"].configure(text=f"MSSV: {sid} | Vắng mặt")
         
         # Reset các tham số, quay lại trạng thái chờ bài giảng tiếp theo
@@ -390,7 +390,7 @@ class LectureScreen(ctk.CTkFrame):
         def _render_student():
             current_behavior = self.engine.session_attendance.get(student_id, {}).get("behavior", "Focusing")
             is_raising_hand = self.engine.session_attendance.get(student_id, {}).get("raising_hand", False)
-            hand_status_text = f"{TEXT_ICONS.get('hand_raising', '✋')} Giơ tay phát biểu" if is_raising_hand else "Không phát biểu"
+            hand_status_text = f"{TEXT_ICONS.get('hand_raising', '')} Giơ tay phát biểu" if is_raising_hand else "Không phát biểu"
             hand_status_color = THEME_COLORS["primary"] if is_raising_hand else THEME_COLORS["text_muted"]
             behavior_color = THEME_COLORS["success_text"] if current_behavior == "Focusing" else THEME_COLORS["warning"]
 
@@ -398,12 +398,12 @@ class LectureScreen(ctk.CTkFrame):
                 # SV đã có thẻ (từ pre-populate hoặc lần quét trước) → cập nhật
                 bar_data = self.student_bars[student_id]
                 bar_data["bar_frame"].configure(border_color=THEME_COLORS["primary"])
-                bar_data["lbl_status"].configure(text=f"MSSV: {student_id} | ✅ {attendance_status}")
+                bar_data["lbl_status"].configure(text=f"MSSV: {student_id} | {attendance_status}")
                 bar_data["lbl_behavior"].configure(text=f"Biểu hiện: {current_behavior}", text_color=behavior_color)
                 bar_data["lbl_hand"].configure(text=hand_status_text, text_color=hand_status_color)
             else:
                 # SV ngoài lớp (không có trong roster) → tạo thẻ mới, thêm vào cuối
-                self._create_student_bar(student_id, student_name, f"✅ {attendance_status}", is_waiting=False)
+                self._create_student_bar(student_id, student_name, f"{attendance_status}", is_waiting=False)
                 bar_data = self.student_bars[student_id]
                 bar_data["lbl_behavior"].configure(text=f"Biểu hiện: {current_behavior}", text_color=behavior_color)
                 bar_data["lbl_hand"].configure(text=hand_status_text, text_color=hand_status_color)

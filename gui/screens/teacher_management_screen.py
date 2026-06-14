@@ -52,6 +52,40 @@ class TeacherManagementScreen(ctk.CTkFrame):
         toolbar = ctk.CTkFrame(list_card, fg_color="transparent")
         toolbar.pack(fill="x", padx=20, pady=(18, 12))
 
+        # Nút Tạo mới Teacher — pack bên PHẢI trước để luôn hiển thị
+        ctk.CTkButton(
+            toolbar,
+            text="+ Tạo mới Teacher",
+            width=150,
+            height=38,
+            fg_color=THEME_COLORS["success_text"],
+            hover_color=THEME_COLORS["success_text"],
+            font=(FONT_FAMILY, 13, "bold"),
+            command=self.open_create_dialog,
+        ).pack(side="right")
+
+        ctk.CTkButton(
+            toolbar,
+            text="Làm mới",
+            width=90,
+            height=38,
+            fg_color=THEME_COLORS["bg_dark"],
+            text_color=THEME_COLORS["text_main"],
+            hover_color=THEME_COLORS["bg_card_hover"],
+            command=self.handle_refresh_click,
+        ).pack(side="right", padx=(0, 8))
+
+        ctk.CTkButton(
+            toolbar,
+            text="Tìm kiếm",
+            width=100,
+            height=38,
+            fg_color=THEME_COLORS["primary"],
+            hover_color=THEME_COLORS["primary_hover"],
+            command=self.refresh_data,
+        ).pack(side="right", padx=(0, 8))
+
+        # Thanh tìm kiếm chiếm phần còn lại bên trái
         self.search_entry = ctk.CTkEntry(
             toolbar,
             placeholder_text="Tìm theo username, display name hoặc email",
@@ -61,34 +95,6 @@ class TeacherManagementScreen(ctk.CTkFrame):
         )
         self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.search_entry.bind("<Return>", lambda _event: self.refresh_data())
-
-        ctk.CTkButton(
-            toolbar,
-            text="Tìm kiếm",
-            width=100,
-            fg_color=THEME_COLORS["primary"],
-            hover_color=THEME_COLORS["primary_hover"],
-            command=self.refresh_data,
-        ).pack(side="left", padx=(0, 8))
-
-        ctk.CTkButton(
-            toolbar,
-            text="Làm mới",
-            width=90,
-            fg_color=THEME_COLORS["bg_dark"],
-            text_color=THEME_COLORS["text_main"],
-            hover_color=THEME_COLORS["bg_card_hover"],
-            command=self.handle_refresh_click,
-        ).pack(side="left", padx=(0, 8))
-
-        ctk.CTkButton(
-            toolbar,
-            text="Tạo mới Teacher",
-            width=140,
-            fg_color=THEME_COLORS["success_text"],
-            hover_color=THEME_COLORS["success_text"],
-            command=self.open_create_dialog,
-        ).pack(side="left")
 
         self.table_frame = ctk.CTkScrollableFrame(list_card, fg_color=THEME_COLORS["bg_input"], corner_radius=8)
         self.table_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
@@ -233,9 +239,9 @@ class TeacherManagementScreen(ctk.CTkFrame):
         is_edit = mode == "edit"
         dialog = ctk.CTkToplevel(self)
         dialog.title("Cập nhật Teacher" if is_edit else "Tạo mới Teacher")
-        dialog.geometry("430x520" if not is_edit else "430x560")
+        dialog.geometry("480x660" if is_edit else "480x620")
         dialog.configure(fg_color=THEME_COLORS["bg_main"])
-        dialog.attributes("-topmost", True)
+        dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
         dialog.protocol("WM_DELETE_WINDOW", lambda: self._close_teacher_dialog(dialog))
 
@@ -346,6 +352,7 @@ class TeacherManagementScreen(ctk.CTkFrame):
         except Exception:
             pass
         dialog.destroy()
+
 
     def handle_toggle_status(self, teacher, is_active):
         result = self.controller.set_teacher_active(self.current_user, teacher["user_id"], is_active)
